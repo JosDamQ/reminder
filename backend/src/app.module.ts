@@ -5,6 +5,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AuthModule } from './auth/auth.module';
 import { StaticPinAuthGuard } from './common/guards/static-pin-auth.guard';
+import { NotificationsModule } from './notifications/notifications.module';
 import { RemindersModule } from './reminders/reminders.module';
 
 @Module({
@@ -31,6 +32,7 @@ import { RemindersModule } from './reminders/reminders.module';
       },
     }),
     AuthModule,
+    NotificationsModule,
     RemindersModule,
   ],
   providers: [
@@ -41,4 +43,3 @@ import { RemindersModule } from './reminders/reminders.module';
   ],
 })
 export class AppModule {}
-

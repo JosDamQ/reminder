@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
+import { SchedulerService } from '../scheduler/scheduler.service';
 import { User } from '../users/user.entity';
 import { CreateReminderDto } from './dto/create-reminder.dto';
 import { UpdateReminderDto } from './dto/update-reminder.dto';
@@ -17,6 +18,7 @@ export class RemindersService {
   constructor(
     @InjectRepository(Reminder)
     private readonly remindersRepository: Repository<Reminder>,
+    private readonly schedulerService: SchedulerService,
   ) {}
 
   async create(user: User, createReminderDto: CreateReminderDto): Promise<Reminder> {
@@ -34,7 +36,8 @@ export class RemindersService {
       user,
     });
 
-    return this.remindersRepository.save(reminder);
+    const savedReminder = await this.remindersRepository.save(reminder);
+    return this.schedulerService.syncReminder(savedReminder);
   }
 
   async findAll(userId: string): Promise<Reminder[]> {
@@ -50,11 +53,18 @@ export class RemindersService {
   async findOne(userId: string, id: string): Promise<Reminder> {
     const reminder = await this.remindersRepository.findOne({
       where: { id, user_id: userId },
+      relations: {
+        notification_logs: true,
+      },
     });
 
     if (!reminder) {
       throw new NotFoundException(`Reminder ${id} not found`);
     }
+
+    reminder.notification_logs?.sort(
+      (left, right) => right.sent_at.getTime() - left.sent_at.getTime(),
+    );
 
     return reminder;
   }
@@ -90,11 +100,13 @@ export class RemindersService {
       reminder.notification_type = updateReminderDto.notification_type;
     }
 
-    return this.remindersRepository.save(reminder);
+    const savedReminder = await this.remindersRepository.save(reminder);
+    return this.schedulerService.syncReminder(savedReminder);
   }
 
   async remove(userId: string, id: string): Promise<void> {
     const reminder = await this.findOne(userId, id);
+    await this.schedulerService.clearReminder(reminder);
     await this.remindersRepository.remove(reminder);
   }
 }

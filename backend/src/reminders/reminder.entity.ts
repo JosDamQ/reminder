@@ -4,10 +4,12 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 
+import { NotificationLog } from '../notifications/notification-log.entity';
 import { User } from '../users/user.entity';
 import {
   ReminderNotificationType,
@@ -68,4 +70,7 @@ export class Reminder {
   @ManyToOne(() => User, (user) => user.reminders, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: User;
+
+  @OneToMany(() => NotificationLog, (notificationLog) => notificationLog.reminder)
+  notification_logs: NotificationLog[];
 }
